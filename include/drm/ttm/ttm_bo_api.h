@@ -33,6 +33,7 @@
 
 #include <drm/drm_hashtab.h>
 #include <drm/drm_vma_manager.h>
+#include <ttm/ttm_priority.h>
 #include <linux/kref.h>
 #include <linux/list.h>
 #include <linux/wait.h>
@@ -225,6 +226,7 @@ struct ttm_buffer_object {
 	struct list_head ddestroy;
 	struct list_head swap;
 	struct list_head io_reserve_lru;
+	struct ttm_pqueue_entry pqueue;
 
 	/**
 	 * Members protected by struct buffer_object_device::fence_lock

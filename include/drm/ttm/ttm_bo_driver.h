@@ -34,6 +34,7 @@
 #include <ttm/ttm_memory.h>
 #include <ttm/ttm_module.h>
 #include <ttm/ttm_placement.h>
+#include <ttm/ttm_priority.h>
 #include <drm/drm_mm.h>
 #include <drm/drm_global.h>
 #include <drm/drm_vma_manager.h>
@@ -239,6 +240,7 @@ struct ttm_mem_type_manager_func {
  *
  * @has_type: The memory type has been initialized.
  * @use_type: The memory type is enabled.
+ * @use_pqueue: The memory type uses a priority queue instead of LRU.
  * @flags: TTM_MEMTYPE_XX flags identifying the traits of the memory
  * managed by this memory type.
  * @gpu_offset: If used, the GPU offset of the first managed page of
@@ -257,6 +259,7 @@ struct ttm_mem_type_manager_func {
  * @io_reserve_fastpath: Only use bdev::driver::io_mem_reserve to obtain
  * static information. bdev::driver::io_mem_free is never used.
  * @lru: The lru list for this memory type.
+ * @pqueue: The priority queue for this memory type. Only lru or pqueue is used.
  *
  * This structure is used to identify and manage memory types for a device.
  * It's set up by the ttm_bo_driver::init_mem_type method.
@@ -273,6 +276,7 @@ struct ttm_mem_type_manager {
 
 	bool has_type;
 	bool use_type;
+	bool use_pqueue;
 	uint32_t flags;
 	unsigned long gpu_offset;
 	uint64_t size;
@@ -295,6 +299,7 @@ struct ttm_mem_type_manager {
 	 */
 
 	struct list_head lru;
+	struct ttm_pqueue pqueue;
 };
 
 /**
