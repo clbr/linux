@@ -172,7 +172,12 @@ void ttm_bo_add_to_lru(struct ttm_buffer_object *bo)
 		BUG_ON(!list_empty(&bo->lru));
 
 		man = &bdev->man[bo->mem.mem_type];
-		list_add_tail(&bo->lru, &man->lru);
+
+		if (bdev->use_pqueue && bo->mem.mem_type == TTM_PL_VRAM)
+			ttm_prio_add(&man->pqueue, &bo->pqueue);
+		else
+			list_add_tail(&bo->lru, &man->lru);
+
 		kref_get(&bo->list_kref);
 
 		if (bo->ttm != NULL) {
@@ -186,6 +191,8 @@ EXPORT_SYMBOL(ttm_bo_add_to_lru);
 int ttm_bo_del_from_lru(struct ttm_buffer_object *bo)
 {
 	int put_count = 0;
+	struct ttm_bo_device *bdev = bo->bdev;
+	struct ttm_mem_type_manager *man = &bdev->man[bo->mem.mem_type];
 
 	if (!list_empty(&bo->swap)) {
 		list_del_init(&bo->swap);
@@ -193,6 +200,10 @@ int ttm_bo_del_from_lru(struct ttm_buffer_object *bo)
 	}
 	if (!list_empty(&bo->lru)) {
 		list_del_init(&bo->lru);
+		++put_count;
+	} else if (bdev->use_pqueue && bo->mem.mem_type == TTM_PL_VRAM &&
+			ttm_prio_is_queued(&bo->pqueue)) {
+		ttm_prio_remove(&man->pqueue, &bo->pqueue);
 		++put_count;
 	}
 
@@ -725,10 +736,22 @@ static int ttm_mem_evict_first(struct ttm_bo_device *bdev,
 	int ret = -EBUSY, put_count;
 
 	spin_lock(&glob->lru_lock);
-	list_for_each_entry(bo, &man->lru, lru) {
-		ret = ttm_bo_reserve_nolru(bo, false, true, false, 0);
-		if (!ret)
-			break;
+	if (bdev->use_pqueue && mem_type == TTM_PL_VRAM) {
+		struct ttm_pqueue_entry *pe;
+		for (pe = ttm_prio_query_lowest(&man->pqueue); pe;
+			pe = ttm_prio_query_next(pe)) {
+
+			bo = container_of(pe, struct ttm_buffer_object, pqueue);
+			ret = ttm_bo_reserve_nolru(bo, false, true, false, 0);
+			if (!ret)
+				break;
+		}
+	} else {
+		list_for_each_entry(bo, &man->lru, lru) {
+			ret = ttm_bo_reserve_nolru(bo, false, true, false, 0);
+			if (!ret)
+				break;
+		}
 	}
 
 	if (ret) {
@@ -1125,6 +1148,7 @@ int ttm_bo_init(struct ttm_bo_device *bdev,
 	INIT_LIST_HEAD(&bo->ddestroy);
 	INIT_LIST_HEAD(&bo->swap);
 	INIT_LIST_HEAD(&bo->io_reserve_lru);
+	ttm_prio_init_entry(&bo->pqueue);
 	mutex_init(&bo->wu_mutex);
 	bo->bdev = bdev;
 	bo->glob = bdev->glob;
@@ -1243,17 +1267,32 @@ static int ttm_bo_force_list_clean(struct ttm_bo_device *bdev,
 	 */
 
 	spin_lock(&glob->lru_lock);
-	while (!list_empty(&man->lru)) {
-		spin_unlock(&glob->lru_lock);
-		ret = ttm_mem_evict_first(bdev, mem_type, false, false);
-		if (ret) {
-			if (allow_errors) {
-				return ret;
-			} else {
-				pr_err("Cleanup eviction failed\n");
+	if (bdev->use_pqueue && mem_type == TTM_PL_VRAM) {
+		while (ttm_prio_query_lowest(&man->pqueue)) {
+			spin_unlock(&glob->lru_lock);
+			ret = ttm_mem_evict_first(bdev, mem_type, false, false);
+			if (ret) {
+				if (allow_errors) {
+					return ret;
+				} else {
+					pr_err("Cleanup eviction failed\n");
+				}
 			}
+			spin_lock(&glob->lru_lock);
 		}
-		spin_lock(&glob->lru_lock);
+	} else {
+		while (!list_empty(&man->lru)) {
+			spin_unlock(&glob->lru_lock);
+			ret = ttm_mem_evict_first(bdev, mem_type, false, false);
+			if (ret) {
+				if (allow_errors) {
+					return ret;
+				} else {
+					pr_err("Cleanup eviction failed\n");
+				}
+			}
+			spin_lock(&glob->lru_lock);
+		}
 	}
 	spin_unlock(&glob->lru_lock);
 	return 0;
@@ -1338,6 +1377,7 @@ int ttm_bo_init_mm(struct ttm_bo_device *bdev, unsigned type,
 	man->size = p_size;
 
 	INIT_LIST_HEAD(&man->lru);
+	memset(&man->pqueue, 0, sizeof(struct ttm_pqueue));
 
 	return 0;
 }
