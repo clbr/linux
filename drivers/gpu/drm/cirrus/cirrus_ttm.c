@@ -263,6 +263,7 @@ int cirrus_mm_init(struct cirrus_device *cirrus)
 				 dev->anon_inode->i_mapping,
 				 DRM_FILE_PAGE_OFFSET,
 				 true,
+				 false,
 				 0);
 	if (ret) {
 		DRM_ERROR("Error initialising bo driver; %d\n", ret);
