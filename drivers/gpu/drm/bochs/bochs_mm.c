@@ -228,7 +228,8 @@ int bochs_mm_init(struct bochs_device *bochs)
 				 &bochs_bo_driver,
 				 bochs->dev->anon_inode->i_mapping,
 				 DRM_FILE_PAGE_OFFSET,
-				 true);
+				 true,
+				 false);
 	if (ret) {
 		DRM_ERROR("Error initialising bo driver; %d\n", ret);
 		return ret;

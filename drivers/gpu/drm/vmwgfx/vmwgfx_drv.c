@@ -725,7 +725,7 @@ static int vmw_driver_load(struct drm_device *dev, unsigned long chipset)
 				 &vmw_bo_driver,
 				 dev->anon_inode->i_mapping,
 				 VMWGFX_FILE_PAGE_OFFSET,
-				 false);
+				 false, false);
 	if (unlikely(ret != 0)) {
 		DRM_ERROR("Failed initializing TTM buffer object driver.\n");
 		goto out_err1;

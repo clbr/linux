@@ -262,7 +262,8 @@ int mgag200_mm_init(struct mga_device *mdev)
 				 &mgag200_bo_driver,
 				 dev->anon_inode->i_mapping,
 				 DRM_FILE_PAGE_OFFSET,
-				 true);
+				 true,
+				 false);
 	if (ret) {
 		DRM_ERROR("Error initialising bo driver; %d\n", ret);
 		return ret;

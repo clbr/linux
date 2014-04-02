@@ -1453,7 +1453,8 @@ int ttm_bo_device_init(struct ttm_bo_device *bdev,
 		       struct ttm_bo_driver *driver,
 		       struct address_space *mapping,
 		       uint64_t file_page_offset,
-		       bool need_dma32)
+		       bool need_dma32,
+		       bool use_pqueue)
 {
 	int ret = -EINVAL;
 
@@ -1476,6 +1477,7 @@ int ttm_bo_device_init(struct ttm_bo_device *bdev,
 	bdev->dev_mapping = mapping;
 	bdev->glob = glob;
 	bdev->need_dma32 = need_dma32;
+	bdev->use_pqueue = use_pqueue;
 	bdev->val_seq = 0;
 	spin_lock_init(&bdev->fence_lock);
 	mutex_lock(&glob->device_list_mutex);

@@ -262,7 +262,8 @@ int ast_mm_init(struct ast_private *ast)
 				 &ast_bo_driver,
 				 dev->anon_inode->i_mapping,
 				 DRM_FILE_PAGE_OFFSET,
-				 true);
+				 true,
+				 false);
 	if (ret) {
 		DRM_ERROR("Error initialising bo driver; %d\n", ret);
 		return ret;
