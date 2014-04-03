@@ -434,6 +434,7 @@ int radeon_bo_list_validate(struct radeon_device *rdev,
 
 	list_for_each_entry(lobj, head, tv.head) {
 		bo = lobj->robj;
+		bo->tbo.pqueue.score = bo->tbo.mem.size;
 		if (!bo->pin_count) {
 			u32 domain = lobj->domain;
 			u32 current_domain =
