@@ -240,6 +240,7 @@ struct ttm_mem_type_manager_func {
  *
  * @has_type: The memory type has been initialized.
  * @use_type: The memory type is enabled.
+ * @use_pqueue: The memory type uses a priority queue instead of LRU.
  * @flags: TTM_MEMTYPE_XX flags identifying the traits of the memory
  * managed by this memory type.
  * @gpu_offset: If used, the GPU offset of the first managed page of
