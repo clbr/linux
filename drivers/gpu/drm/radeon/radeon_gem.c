@@ -548,6 +548,9 @@ int radeon_gem_op_ioctl(struct drm_device *dev, void *data,
 						      RADEON_GEM_DOMAIN_GTT |
 						      RADEON_GEM_DOMAIN_CPU);
 		break;
+	case RADEON_GEM_OP_SET_SCORE:
+		robj->tbo.pqueue.score = args->value;
+		break;
 	default:
 		r = -EINVAL;
 	}

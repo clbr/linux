@@ -895,6 +895,7 @@ struct drm_radeon_gem_op {
 
 #define RADEON_GEM_OP_GET_INITIAL_DOMAIN	0
 #define RADEON_GEM_OP_SET_INITIAL_DOMAIN	1
+#define RADEON_GEM_OP_SET_SCORE			2
 
 #define RADEON_VA_MAP			1
 #define RADEON_VA_UNMAP			2
