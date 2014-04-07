@@ -34,6 +34,9 @@
 #define RADEON_CS_MAX_PRIORITY		32u
 #define RADEON_CS_NUM_BUCKETS		(RADEON_CS_MAX_PRIORITY + 1)
 
+#define RADEON_CS_RELOC_DWSIZE		(sizeof(struct drm_radeon_cs_reloc) / sizeof(uint32_t))
+#define RADEON_CS_RELOC_SCORED_DWSIZE	(sizeof(struct drm_radeon_cs_reloc_scored) / sizeof(uint32_t))
+
 /* This is based on the bucket sort with O(n) time complexity.
  * An item with priority "i" is added to bucket[i]. The lists are then
  * concatenated in descending order.
@@ -77,16 +80,24 @@ static int radeon_cs_parser_relocs(struct radeon_cs_parser *p)
 	struct drm_device *ddev = p->rdev->ddev;
 	struct radeon_cs_chunk *chunk;
 	struct radeon_cs_buckets buckets;
+	struct radeon_fpriv *fpriv = p->filp->driver_priv;
 	unsigned i, j;
 	bool duplicate;
+	uint32_t reloc_size = RADEON_CS_RELOC_DWSIZE;
+
+	if (p->cs_flags & RADEON_CS_USE_SCORED) {
+		reloc_size = RADEON_CS_RELOC_SCORED_DWSIZE;
+		/* Now we know userspace is new enough, so disable emulation. */
+		if (fpriv && fpriv->emulate_score)
+			fpriv->emulate_score = false;
+	}
 
 	if (p->chunk_relocs_idx == -1) {
 		return 0;
 	}
 	chunk = &p->chunks[p->chunk_relocs_idx];
 	p->dma_reloc_idx = 0;
-	/* FIXME: we assume that each relocs use 4 dwords */
-	p->nrelocs = chunk->length_dw / 4;
+	p->nrelocs = chunk->length_dw / reloc_size;
 	p->relocs_ptr = kcalloc(p->nrelocs, sizeof(void *), GFP_KERNEL);
 	if (p->relocs_ptr == NULL) {
 		return -ENOMEM;
@@ -99,11 +110,11 @@ static int radeon_cs_parser_relocs(struct radeon_cs_parser *p)
 	radeon_cs_buckets_init(&buckets);
 
 	for (i = 0; i < p->nrelocs; i++) {
-		struct drm_radeon_cs_reloc *r;
+		struct drm_radeon_cs_reloc_scored *r;
 		unsigned priority;
 
 		duplicate = false;
-		r = (struct drm_radeon_cs_reloc *)&chunk->kdata[i*4];
+		r = (struct drm_radeon_cs_reloc_scored *)&chunk->kdata[i*reloc_size];
 		for (j = 0; j < i; j++) {
 			if (r->handle == p->relocs[j].handle) {
 				p->relocs_ptr[i] = &p->relocs[j];
@@ -161,6 +172,9 @@ static int radeon_cs_parser_relocs(struct radeon_cs_parser *p)
 		p->relocs[i].tv.bo = &p->relocs[i].robj->tbo;
 		p->relocs[i].handle = r->handle;
 
+		if (p->cs_flags & RADEON_CS_USE_SCORED)
+			p->relocs[i].new_score = r->score;
+
 		radeon_cs_buckets_add(&buckets, &p->relocs[i].tv.head,
 				      priority);
 	}
@@ -171,7 +185,8 @@ static int radeon_cs_parser_relocs(struct radeon_cs_parser *p)
 		p->vm_bos = radeon_vm_get_bos(p->rdev, p->ib.vm,
 					      &p->validated);
 
-	return radeon_bo_list_validate(p->rdev, &p->ticket, &p->validated, p->ring);
+	return radeon_bo_list_validate(p->rdev, &p->ticket, &p->validated, p->ring,
+						fpriv);
 }
 
 static int radeon_cs_get_ring(struct radeon_cs_parser *p, u32 ring, s32 priority)
@@ -757,6 +772,11 @@ int radeon_cs_packet_next_reloc(struct radeon_cs_parser *p,
 	struct radeon_cs_packet p3reloc;
 	unsigned idx;
 	int r;
+	uint32_t reloc_size = RADEON_CS_RELOC_DWSIZE;
+
+	if (p->cs_flags & RADEON_CS_USE_SCORED) {
+		reloc_size = RADEON_CS_RELOC_SCORED_DWSIZE;
+	}
 
 	if (p->chunk_relocs_idx == -1) {
 		DRM_ERROR("No relocation chunk !\n");
@@ -782,13 +802,13 @@ int radeon_cs_packet_next_reloc(struct radeon_cs_parser *p,
 		radeon_cs_dump_packet(p, &p3reloc);
 		return -EINVAL;
 	}
-	/* FIXME: we assume reloc size is 4 dwords */
+	/* The no-mm path only taken by UMS - old mesa. */
 	if (nomm) {
 		*cs_reloc = p->relocs;
 		(*cs_reloc)->gpu_offset =
 			(u64)relocs_chunk->kdata[idx + 3] << 32;
 		(*cs_reloc)->gpu_offset |= relocs_chunk->kdata[idx + 0];
 	} else
-		*cs_reloc = p->relocs_ptr[(idx / 4)];
+		*cs_reloc = p->relocs_ptr[(idx / reloc_size)];
 	return 0;
 }

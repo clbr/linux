@@ -890,6 +890,7 @@ struct radeon_vm_manager {
  */
 struct radeon_fpriv {
 	struct radeon_vm		vm;
+	bool				emulate_score;
 };
 
 /*
@@ -984,6 +985,7 @@ struct radeon_cs_reloc {
 	unsigned			alt_domain;
 	uint32_t			tiling_flags;
 	uint32_t			handle;
+	uint64_t			new_score;
 };
 
 struct radeon_cs_chunk {

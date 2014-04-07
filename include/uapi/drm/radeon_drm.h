@@ -926,6 +926,7 @@ struct drm_radeon_gem_va {
 #define RADEON_CS_KEEP_TILING_FLAGS 0x01
 #define RADEON_CS_USE_VM            0x02
 #define RADEON_CS_END_OF_FRAME      0x04 /* a hint from userspace which CS is the last one */
+#define RADEON_CS_USE_SCORED	    0x08
 /* The second dword of RADEON_CHUNK_ID_FLAGS is a uint32 that sets the ring type */
 #define RADEON_CS_RING_GFX          0
 #define RADEON_CS_RING_COMPUTE      1
@@ -948,6 +949,14 @@ struct drm_radeon_cs_reloc {
 	uint32_t		read_domains;
 	uint32_t		write_domain;
 	uint32_t		flags;
+};
+
+struct drm_radeon_cs_reloc_scored {
+	uint32_t		handle;
+	uint32_t		read_domains;
+	uint32_t		write_domain;
+	uint32_t		flags;
+	uint64_t		score;
 };
 
 struct drm_radeon_cs {
