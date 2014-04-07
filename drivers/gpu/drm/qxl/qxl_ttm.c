@@ -496,7 +496,7 @@ int qxl_ttm_init(struct qxl_device *qdev)
 			       qdev->mman.bo_global_ref.ref.object,
 			       &qxl_bo_driver,
 			       qdev->ddev->anon_inode->i_mapping,
-			       DRM_FILE_PAGE_OFFSET, 0, false);
+			       DRM_FILE_PAGE_OFFSET, 0);
 	if (r) {
 		DRM_ERROR("failed initializing buffer object driver(%d).\n", r);
 		return r;
