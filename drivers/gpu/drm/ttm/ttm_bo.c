@@ -173,7 +173,7 @@ void ttm_bo_add_to_lru(struct ttm_buffer_object *bo)
 
 		man = &bdev->man[bo->mem.mem_type];
 
-		if (bdev->use_pqueue && bo->mem.mem_type == TTM_PL_VRAM)
+		if (man->use_pqueue)
 			ttm_prio_add(&man->pqueue, &bo->pqueue);
 		else
 			list_add_tail(&bo->lru, &man->lru);
@@ -201,7 +201,7 @@ int ttm_bo_del_from_lru(struct ttm_buffer_object *bo)
 	if (!list_empty(&bo->lru)) {
 		list_del_init(&bo->lru);
 		++put_count;
-	} else if (bdev->use_pqueue && bo->mem.mem_type == TTM_PL_VRAM &&
+	} else if (man->use_pqueue &&
 			ttm_prio_is_queued(&bo->pqueue)) {
 		ttm_prio_remove(&man->pqueue, &bo->pqueue);
 		++put_count;
@@ -736,7 +736,7 @@ static int ttm_mem_evict_first(struct ttm_bo_device *bdev,
 	int ret = -EBUSY, put_count;
 
 	spin_lock(&glob->lru_lock);
-	if (bdev->use_pqueue && mem_type == TTM_PL_VRAM) {
+	if (man->use_pqueue) {
 		struct ttm_pqueue_entry *pe;
 		for (pe = ttm_prio_query_lowest(&man->pqueue); pe;
 			pe = ttm_prio_query_next(pe)) {
@@ -972,7 +972,7 @@ int ttm_bo_mem_space(struct ttm_buffer_object *bo,
 		}
 
 		/* Make sure it's high enough priority to force space for it. */
-		if (bdev->use_pqueue && mem_type == TTM_PL_VRAM) {
+		if (man->use_pqueue) {
 			const struct ttm_pqueue_entry *e =
 				ttm_prio_query_lowest(&man->pqueue);
 			if (e) {
@@ -1281,7 +1281,7 @@ static int ttm_bo_force_list_clean(struct ttm_bo_device *bdev,
 	 */
 
 	spin_lock(&glob->lru_lock);
-	if (bdev->use_pqueue && mem_type == TTM_PL_VRAM) {
+	if (man->use_pqueue) {
 		while (ttm_prio_query_lowest(&man->pqueue)) {
 			spin_unlock(&glob->lru_lock);
 			ret = ttm_mem_evict_first(bdev, mem_type, false, false);
