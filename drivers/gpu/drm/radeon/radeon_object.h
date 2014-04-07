@@ -140,7 +140,8 @@ extern int radeon_bo_init(struct radeon_device *rdev);
 extern void radeon_bo_fini(struct radeon_device *rdev);
 extern int radeon_bo_list_validate(struct radeon_device *rdev,
 				   struct ww_acquire_ctx *ticket,
-				   struct list_head *head, int ring);
+				   struct list_head *head, int ring,
+				   struct radeon_fpriv *fpriv);
 extern int radeon_bo_fbdev_mmap(struct radeon_bo *bo,
 				struct vm_area_struct *vma);
 extern int radeon_bo_set_tiling_flags(struct radeon_bo *bo,

@@ -77,6 +77,7 @@ static int radeon_cs_parser_relocs(struct radeon_cs_parser *p)
 	struct drm_device *ddev = p->rdev->ddev;
 	struct radeon_cs_chunk *chunk;
 	struct radeon_cs_buckets buckets;
+	struct radeon_fpriv *fpriv = p->filp->driver_priv;
 	unsigned i, j;
 	bool duplicate;
 
@@ -171,7 +172,8 @@ static int radeon_cs_parser_relocs(struct radeon_cs_parser *p)
 		p->vm_bos = radeon_vm_get_bos(p->rdev, p->ib.vm,
 					      &p->validated);
 
-	return radeon_bo_list_validate(p->rdev, &p->ticket, &p->validated, p->ring);
+	return radeon_bo_list_validate(p->rdev, &p->ticket, &p->validated, p->ring,
+						fpriv);
 }
 
 static int radeon_cs_get_ring(struct radeon_cs_parser *p, u32 ring, s32 priority)

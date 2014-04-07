@@ -430,21 +430,35 @@ static u64 radeon_bo_get_threshold_for_moves(struct radeon_device *rdev)
 
 int radeon_bo_list_validate(struct radeon_device *rdev,
 			    struct ww_acquire_ctx *ticket,
-			    struct list_head *head, int ring)
+			    struct list_head *head, int ring,
+			    struct radeon_fpriv *fpriv)
 {
 	struct radeon_cs_reloc *lobj;
 	struct radeon_bo *bo;
 	int r;
 	u64 bytes_moved = 0, initial_bytes_moved;
 	u64 bytes_moved_threshold = radeon_bo_get_threshold_for_moves(rdev);
+	bool emulate_score = true;
+	u64 emulated_score = 0;
 
 	r = ttm_eu_reserve_buffers(ticket, head);
 	if (unlikely(r != 0)) {
 		return r;
 	}
 
+	if (fpriv && !fpriv->emulate_score) {
+		emulate_score = false;
+	} else {
+		struct timespec ts;
+		do_posix_clock_monotonic_gettime(&ts);
+
+		emulated_score = (((u64) ts.tv_sec) << 32) + ts.tv_nsec;
+	}
+
 	list_for_each_entry(lobj, head, tv.head) {
 		bo = lobj->robj;
+		if (emulate_score)
+			bo->tbo.pqueue.score = emulated_score;
 		if (!bo->pin_count) {
 			u32 domain = lobj->domain;
 			u32 current_domain =
