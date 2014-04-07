@@ -528,6 +528,7 @@ int radeon_gem_op_ioctl(struct drm_device *dev, void *data,
 	struct drm_radeon_gem_op *args = data;
 	struct drm_gem_object *gobj;
 	struct radeon_bo *robj;
+	struct radeon_fpriv *fpriv = filp->driver_priv;
 	int r;
 
 	gobj = drm_gem_object_lookup(dev, filp, args->handle);
@@ -549,6 +550,10 @@ int radeon_gem_op_ioctl(struct drm_device *dev, void *data,
 						      RADEON_GEM_DOMAIN_CPU);
 		break;
 	case RADEON_GEM_OP_SET_SCORE:
+		/* Now we know userspace is new enough, so disable emulation. */
+		if (fpriv && fpriv->emulate_score)
+			fpriv->emulate_score = false;
+
 		robj->tbo.pqueue.score = args->value;
 		break;
 	default:

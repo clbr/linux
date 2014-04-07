@@ -548,6 +548,7 @@ void radeon_driver_lastclose_kms(struct drm_device *dev)
 int radeon_driver_open_kms(struct drm_device *dev, struct drm_file *file_priv)
 {
 	struct radeon_device *rdev = dev->dev_private;
+	struct radeon_fpriv *fpriv;
 	int r;
 
 	file_priv->driver_priv = NULL;
@@ -556,16 +557,18 @@ int radeon_driver_open_kms(struct drm_device *dev, struct drm_file *file_priv)
 	if (r < 0)
 		return r;
 
+	fpriv = kzalloc(sizeof(*fpriv), GFP_KERNEL);
+	if (unlikely(!fpriv)) {
+		return -ENOMEM;
+	}
+
+	/* Until we know userspace is new enough. */
+	fpriv->emulate_score = true;
+
 	/* new gpu have virtual address space support */
 	if (rdev->family >= CHIP_CAYMAN) {
-		struct radeon_fpriv *fpriv;
 		struct radeon_bo_va *bo_va;
 		int r;
-
-		fpriv = kzalloc(sizeof(*fpriv), GFP_KERNEL);
-		if (unlikely(!fpriv)) {
-			return -ENOMEM;
-		}
 
 		r = radeon_vm_init(rdev, &fpriv->vm);
 		if (r)
@@ -589,9 +592,9 @@ int radeon_driver_open_kms(struct drm_device *dev, struct drm_file *file_priv)
 			kfree(fpriv);
 			return r;
 		}
-
-		file_priv->driver_priv = fpriv;
 	}
+
+	file_priv->driver_priv = fpriv;
 
 	pm_runtime_mark_last_busy(dev->dev);
 	pm_runtime_put_autosuspend(dev->dev);
@@ -610,23 +613,26 @@ void radeon_driver_postclose_kms(struct drm_device *dev,
 				 struct drm_file *file_priv)
 {
 	struct radeon_device *rdev = dev->dev_private;
+	struct radeon_fpriv *fpriv = file_priv->driver_priv;
 
-	/* new gpu have virtual address space support */
-	if (rdev->family >= CHIP_CAYMAN && file_priv->driver_priv) {
-		struct radeon_fpriv *fpriv = file_priv->driver_priv;
-		struct radeon_bo_va *bo_va;
-		int r;
+	if (fpriv) {
+		/* new gpu have virtual address space support */
+		if (rdev->family >= CHIP_CAYMAN && file_priv->driver_priv) {
+			struct radeon_bo_va *bo_va;
+			int r;
 
-		r = radeon_bo_reserve(rdev->ring_tmp_bo.bo, false);
-		if (!r) {
-			bo_va = radeon_vm_bo_find(&fpriv->vm,
-						  rdev->ring_tmp_bo.bo);
-			if (bo_va)
-				radeon_vm_bo_rmv(rdev, bo_va);
-			radeon_bo_unreserve(rdev->ring_tmp_bo.bo);
+			r = radeon_bo_reserve(rdev->ring_tmp_bo.bo, false);
+			if (!r) {
+				bo_va = radeon_vm_bo_find(&fpriv->vm,
+							  rdev->ring_tmp_bo.bo);
+				if (bo_va)
+					radeon_vm_bo_rmv(rdev, bo_va);
+				radeon_bo_unreserve(rdev->ring_tmp_bo.bo);
+			}
+
+			radeon_vm_fini(rdev, &fpriv->vm);
 		}
 
-		radeon_vm_fini(rdev, &fpriv->vm);
 		kfree(fpriv);
 		file_priv->driver_priv = NULL;
 	}

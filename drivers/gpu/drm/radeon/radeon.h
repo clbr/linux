@@ -890,6 +890,7 @@ struct radeon_vm_manager {
  */
 struct radeon_fpriv {
 	struct radeon_vm		vm;
+	bool				emulate_score;
 };
 
 /*
