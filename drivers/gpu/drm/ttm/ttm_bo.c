@@ -874,6 +874,9 @@ static bool ttm_bo_mt_compatible(struct ttm_mem_type_manager *man,
  * the priority order defined by the driver.  If free space isn't found, then
  * ttm_bo_mem_force_space is attempted in priority order to evict and find
  * space.
+ *
+ * If using the priority queue, and the new buffer's priority is too low,
+ * return an error so the driver can adjust the placing.
  */
 int ttm_bo_mem_space(struct ttm_buffer_object *bo,
 			struct ttm_placement *placement,
@@ -966,6 +969,17 @@ int ttm_bo_mem_space(struct ttm_buffer_object *bo,
 			mem->placement = cur_flags;
 			mem->mm_node = NULL;
 			return 0;
+		}
+
+		/* Make sure it's high enough priority to force space for it. */
+		if (bdev->use_pqueue && mem_type == TTM_PL_VRAM) {
+			const struct ttm_pqueue_entry *e =
+				ttm_prio_query_lowest(&man->pqueue);
+			if (e) {
+				const u64 low = e->score;
+				if (bo->pqueue.score < low)
+					continue;
+			}
 		}
 
 		ret = ttm_bo_mem_force_space(bo, mem_type, placement, mem,
