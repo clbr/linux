@@ -275,6 +275,7 @@ struct ttm_mem_type_manager {
 
 	bool has_type;
 	bool use_type;
+	bool use_pqueue;
 	uint32_t flags;
 	unsigned long gpu_offset;
 	uint64_t size;
@@ -530,7 +531,6 @@ struct ttm_bo_global {
  * @dev_mapping: A pointer to the struct address_space representing the
  * device address space.
  * @wq: Work queue structure for the delayed delete workqueue.
- * @use_pqueue: Whether to use a priority queue for VRAM bos instead of lru.
  *
  */
 
@@ -569,7 +569,6 @@ struct ttm_bo_device {
 	struct delayed_work wq;
 
 	bool need_dma32;
-	bool use_pqueue;
 };
 
 /**
@@ -756,7 +755,6 @@ extern int ttm_bo_device_release(struct ttm_bo_device *bdev);
  * @file_page_offset: Offset into the device address space that is available
  * for buffer data. This ensures compatibility with other users of the
  * address space.
- * @use_pqueue: Whether to use a priority queue for VRAM bos instead of lru.
  *
  * Initializes a struct ttm_bo_device:
  * Returns:
@@ -767,8 +765,7 @@ extern int ttm_bo_device_init(struct ttm_bo_device *bdev,
 			      struct ttm_bo_driver *driver,
 			      struct address_space *mapping,
 			      uint64_t file_page_offset,
-			      bool need_dma32,
-			      bool use_pqueue);
+			      bool need_dma32);
 
 /**
  * ttm_bo_unmap_virtual
