@@ -85,7 +85,7 @@ static int radeon_cs_parser_relocs(struct radeon_cs_parser *p)
 	bool duplicate;
 	uint32_t reloc_size = RADEON_CS_RELOC_DWSIZE;
 
-	if (p->cs_flags & RADEON_CS_USE_SCORED) {
+	if (p->cs_flags & RADEON_CS_USE_SCORED || (fpriv && !fpriv->emulate_score)) {
 		reloc_size = RADEON_CS_RELOC_SCORED_DWSIZE;
 		/* Now we know userspace is new enough, so disable emulation. */
 		if (fpriv && fpriv->emulate_score)
