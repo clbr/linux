@@ -452,14 +452,14 @@ int radeon_bo_list_validate(struct radeon_device *rdev,
 		struct timespec ts;
 		do_posix_clock_monotonic_gettime(&ts);
 
-		emulated_score = (((u64) ts.tv_sec) << 32) + ts.tv_nsec;
+		emulated_score = (((u64) ts.tv_sec) * 1000 * 1000 * 1000) + ts.tv_nsec;
 	}
 
 	list_for_each_entry(lobj, head, tv.head) {
 		bo = lobj->robj;
 		if (emulate_score)
 			bo->tbo.pqueue.score = emulated_score;
-		else
+		else if (lobj->new_score)
 			bo->tbo.pqueue.score = lobj->new_score;
 
 		if (!bo->pin_count) {
