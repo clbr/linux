@@ -440,6 +440,10 @@ int radeon_bo_list_validate(struct radeon_device *rdev,
 	u64 bytes_moved_threshold = radeon_bo_get_threshold_for_moves(rdev);
 	bool emulate_score = true;
 	u64 emulated_score = 0;
+	struct timespec ts;
+
+	do_posix_clock_monotonic_gettime(&ts);
+	emulated_score = (((u64) ts.tv_sec) * 1000 * 1000 * 1000) + ts.tv_nsec;
 
 	r = ttm_eu_reserve_buffers(ticket, head);
 	if (unlikely(r != 0)) {
@@ -448,16 +452,11 @@ int radeon_bo_list_validate(struct radeon_device *rdev,
 
 	if (fpriv && !fpriv->emulate_score) {
 		emulate_score = false;
-	} else {
-		struct timespec ts;
-		do_posix_clock_monotonic_gettime(&ts);
-
-		emulated_score = (((u64) ts.tv_sec) * 1000 * 1000 * 1000) + ts.tv_nsec;
 	}
 
 	list_for_each_entry(lobj, head, tv.head) {
 		bo = lobj->robj;
-		if (emulate_score)
+		if (emulate_score || lobj->new_score < emulated_score)
 			bo->tbo.pqueue.score = emulated_score;
 		else if (lobj->new_score)
 			bo->tbo.pqueue.score = lobj->new_score;
