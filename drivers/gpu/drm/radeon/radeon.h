@@ -2333,7 +2333,8 @@ int radeon_gpu_wait_for_idle(struct radeon_device *rdev);
 static inline uint32_t r100_mm_rreg(struct radeon_device *rdev, uint32_t reg,
 				    bool always_indirect)
 {
-	if (reg < rdev->rmmio_size && !always_indirect)
+	/* The mmio size is 64kb at minimum. Allows the if to be optimized out. */
+	if ((reg < rdev->rmmio_size || reg < 0x10000) && !always_indirect)
 		return readl(((void __iomem *)rdev->rmmio) + reg);
 	else {
 		unsigned long flags;
