@@ -382,4 +382,10 @@ config JOYSTICK_FSIA6B
 	  To compile this driver as a module, choose M here: the
 	  module will be called fsia6b.
 
+config JOYSTICK_N64
+	bool "N64 controller"
+	depends on MIPS_N64
+	help
+	  Support for the four N64 controllers.
+
 endif
