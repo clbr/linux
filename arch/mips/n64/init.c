@@ -8,6 +8,7 @@
 #include <linux/ioport.h>
 #include <linux/irq.h>
 #include <linux/memblock.h>
+#include <linux/platform_device.h>
 #include <linux/string.h>
 
 #include <asm/bootinfo.h>
@@ -45,6 +46,15 @@ void __init prom_init(void)
 void __init prom_free_prom_memory(void)
 {
 }
+
+static int __init n64_platform_init(void)
+{
+	platform_device_register_simple("n64rdp", -1, NULL, 0);
+
+	return 0;
+}
+
+arch_initcall(n64_platform_init);
 
 void __init plat_mem_setup(void)
 {
