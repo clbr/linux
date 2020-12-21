@@ -50,6 +50,7 @@ void __init prom_free_prom_memory(void)
 static int __init n64_platform_init(void)
 {
 	platform_device_register_simple("n64rdp", -1, NULL, 0);
+	platform_device_register_simple("n64audio", -1, NULL, 0);
 
 	return 0;
 }
